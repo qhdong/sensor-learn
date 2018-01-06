@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from collections import namedtuple
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import Imputer
@@ -15,6 +15,7 @@ from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import VotingClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.model_selection import ShuffleSplit
@@ -23,7 +24,7 @@ from sklearn.metrics import classification_report
 
 from utils.log import setup_logging
 from sensor import load_dataset
-from utils.supervise import plot_learning_curve, plot_loss, plot_validation_curve
+from utils.supervise import plot_learning_curve, plot_loss
 
 # 配置日志
 ################################################################################
@@ -38,15 +39,9 @@ target = sensor_data['target']
 n_samples = len(data)
 n_feature = len(data[0])
 
-# digits = load_digits()
-# n_samples = len(digits.images)
-# data = digits.images.reshape((n_samples, -1))
-# target = digits.target
-
 # 预处理
 ################################################################################
 X, y = sensor_data['data'], sensor_data['target']
-# X, y = data, target
 
 # 处理NaN
 imp = Imputer()
@@ -63,21 +58,27 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_
 ################################################################################
 Classifer = namedtuple('Classifer', ['name', 'clf'])
 classifiers = [
-    # Classifer("Nearest Neighbors", KNeighborsClassifier()),
     # Classifer("Linear SVM", SVC(C=0.025)),
-    # Classifer("Linear SVM", SVC(gamma=0.001)),
-    # Classifer("RBF SVM", SVC(gamma=2, C=1)),
+    Classifer("RBF SVM 1", SVC()),
+    Classifer("RBF SVM 2", SVC()),
+    Classifer("RBF SVM 3", SVC()),
     # Classifer("Gaussian Process", GaussianProcessClassifier(1.0 * RBF(1.0))),
     # Classifer("Decision Tree", DecisionTreeClassifier(max_depth=5)),
-    Classifer("Random Forest", RandomForestClassifier(n_jobs=-1)),
-    # Classifer("Neural Net", MLPClassifier(solver='lbfgs', alpha=1)),
-    # Classifer("AdaBoost", AdaBoostClassifier(n_estimators=100)),
-    # Classifer("Neural Net", MLPClassifier(activation='relu', max_iter=500, solver='adam', alpha=1)),
-    Classifer("Neural Net", MLPClassifier(activation='relu', max_iter=400, solver='adam', verbose=True)),
+    # Classifer("Random Forest", RandomForestClassifier(n_jobs=-1, verbose=True)),
+    # Classifer("AdaBoost", AdaBoostClassifier()),
+    # Classifer("Neural Net", MLPClassifier(activation='relu', max_iter=400, solver='adam', verbose=True)),
     # classifer("Naive Bayes", GaussianNB()),
     # classifer("QDA", QuadraticDiscriminantAnalysis()),
 ]
 
+
+def ensemble_learn():
+    logger.info("集成学习")
+    kfold = KFold(n_splits=10, random_state=42)
+    estimators = [(name, clf) for name, clf in classifiers]
+    ensemble = VotingClassifier(estimators)
+    results = cross_val_score(ensemble, X, y, cv=kfold)
+    print(results.mean())
 
 # 训练
 ################################################################################
@@ -95,17 +96,7 @@ def train_with_supervise_chart():
         elapsed_time = time.time() - t
         logger.info("分类器[%s] 训练完成，花费时间 %.2s", name, elapsed_time)
 
-
-def train_with_validation_curve():
-    for name, clf in classifiers:
-        logger.info("正在训练分类器[%s]", name)
-
-        title = "Validation Curves (%s)" % name
-
-        t = time.time()
-        plot_validation_curve(clf, 'max_iter', np.logsp)
-        elapsed_time = time.time() - t
-        logger.info("分类器[%s] 训练完成，花费时间 %.2s", name, elapsed_time)
+        plt.show()
 
 
 def train():
@@ -155,6 +146,7 @@ def train_and_show_table():
 
 
 if __name__ == '__main__':
-    train_and_show_table()
+    # train_and_show_table()
+    ensemble_learn()
     # train_with_supervise_chart()
     # train()

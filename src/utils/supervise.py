@@ -1,6 +1,8 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import learning_curve
+from sklearn.model_selection import validation_curve
 
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
@@ -70,4 +72,43 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
              label="Cross-validation score")
 
     plt.legend(loc="best")
+    plt.show()
+
+
+def plot_validation_curve(estimator, param, param_range, title, X, y, cv=10, n_jobs=1):
+
+    train_scores, test_scores = validation_curve(
+        estimator, X, y, param_name=param, param_range=param_range,
+        cv=cv, scoring="accuracy", n_jobs=n_jobs)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+
+    plt.title(title)
+    plt.xlabel(param)
+    plt.ylabel("Score")
+    plt.ylim(0.0, 1.1)
+    lw = 2
+    plt.semilogx(param_range, train_scores_mean, label="Training score",
+                 color="darkorange", lw=lw)
+    plt.fill_between(param_range, train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std, alpha=0.2,
+                     color="darkorange", lw=lw)
+    plt.semilogx(param_range, test_scores_mean, label="Cross-validation score",
+                 color="navy", lw=lw)
+    plt.fill_between(param_range, test_scores_mean - test_scores_std,
+                     test_scores_mean + test_scores_std, alpha=0.2,
+                     color="navy", lw=lw)
+    plt.legend(loc="best")
+    plt.show()
+
+
+def plot_loss(name, clf):
+    """画出分类器的loss下降图"""
+    plt.figure()
+    plt.title("Loss During %s" % name)
+    plt.xlabel("number of steps")
+    plt.ylabel("loss function")
+    plt.plot(clf.loss_curve_)
     return plt

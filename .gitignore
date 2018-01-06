@@ -3,3 +3,4 @@ data
 log
 output
 *.npz
+src/.ipynb_checkpoints/
